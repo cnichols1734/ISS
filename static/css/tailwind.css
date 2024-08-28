@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+body {
+    @apply bg-gray-900 text-white;
+}
+
+.container {
+    @apply max-w-7xl mx-auto px-4 py-8;
+}
+
+h1, h2 {
+    @apply font-bold text-center;
+}
+
+h1 {
+    @apply text-4xl mb-8;
+}
+
+h2 {
+    @apply text-2xl mb-6;
+}
+
+#map {
+    @apply rounded-lg shadow-lg mb-8 h-[600px] w-full;
+}
+
+iframe {
+    @apply rounded-lg shadow-lg w-full h-[600px];
+}.myContainer {
+     @apply bg-gray-800 text-white;
+ }body {
+      @apply bg-gray-900 text-white;
+  }
+
+.aspect-w-16.aspect-h-9 {
+    @apply relative overflow-hidden;
+    padding-top: 56.25%; /* Aspect ratio 16:9 */
+}
+
+.aspect-w-16.aspect-h-9 iframe {
+    @apply absolute top-0 left-0 w-full h-full;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    h1 {
+        @apply text-3xl mb-6;
+    }
+
+    h2 {
+        @apply text-xl mb-4;
+    }
+
+    #map, iframe {
+        @apply h-[400px];
+    }
+}

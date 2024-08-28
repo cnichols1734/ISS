@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISS Tracker</title>
+    <link href="/static/css/tailwind.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">International Space Station Tracker</h1>
+        <div id="map" class="rounded-lg shadow-lg"></div>
+        <div class="mt-6">
+            <h2 class="text-2xl font-semibold mb-4">Live Video Feed from ISS</h2>
+            <div class="video-container rounded-lg shadow-lg overflow-hidden">
+                <iframe src="https://www.youtube.com/embed/xRPjKQtRXR8?autoplay=1&mute=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </div>
+        </div>
+        <div class="mt-6">
+            <label for="pollInterval" class="block text-sm font-medium text-gray-300">Update Interval (milliseconds):</label>
+            <input type="number" id="pollInterval" name="pollInterval" value="1000" min="100" step="100" class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <button id="updateIntervalBtn" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Update Interval</button>
+        </div>
+    </div>
+
+   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    let map = L.map('map').setView([0, 0], 2);
+    let userZoom = 2;
+    let userCenter = [0, 0];
+    let isInitialLoad = true;  // New flag to track initial load
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const issIcon = L.icon({
+        iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/International_Space_Station.svg',
+        iconSize: [50, 32],
+        iconAnchor: [25, 16]
+    });
+
+    let issMarker = L.marker([0, 0], { icon: issIcon }).addTo(map);
+    let issPathLine;
+    let pollInterval = 1000; // Default to 1 second
+    let updateTimer;
+
+    let lastKnownPosition = null;
+    let lastUpdateTime = null;
+    let pathCoordinates = [];
+
+    map.on('zoomend', function() {
+        if (!isInitialLoad) {  // Only update userZoom if it's not the initial load
+            userZoom = map.getZoom();
+        }
+    });
+
+    map.on('moveend', function() {
+        if (!isInitialLoad) {  // Only update userCenter if it's not the initial load
+            userCenter = map.getCenter();
+        }
+    });
+
+    function updateISSLocation() {
+        fetch('/iss_location')
+            .then(response => response.json())
+            .then(data => {
+                const newPosition = [parseFloat(data.latitude), parseFloat(data.longitude)];
+                const currentTime = Date.now();
+
+                lastKnownPosition = newPosition;
+                lastUpdateTime = currentTime;
+
+                pathCoordinates.push(newPosition);
+
+                // Always update the map view on initial load
+                if (isInitialLoad || (userZoom === map.getZoom() && userCenter.equals(map.getCenter()))) {
+                    map.setView(newPosition, userZoom);
+                    isInitialLoad = false;  // Set to false after initial load
+                }
+
+                issMarker.setLatLng(newPosition);
+                drawPath();
+            });
+
+        updateTimer = setTimeout(updateISSLocation, pollInterval);
+    }
+
+    function drawPath() {
+        if (issPathLine) {
+            map.removeLayer(issPathLine);
+        }
+
+        issPathLine = L.polyline(pathCoordinates, { color: 'yellow', weight: 2 }).addTo(map);
+    }
+
+    updateISSLocation();
+
+    // Add event listener for the update interval button
+    document.getElementById('updateIntervalBtn').addEventListener('click', function() {
+        const newInterval = parseInt(document.getElementById('pollInterval').value);
+        if (!isNaN(newInterval) && newInterval >= 100) {
+            pollInterval = newInterval;
+            console.log(`Update interval set to ${pollInterval} ms`);
+            // Restart the update cycle with the new interval
+            clearTimeout(updateTimer);
+            updateISSLocation();
+        } else {
+            console.log('Invalid interval. Please enter a number >= 100');
+        }
+    });
+</script>
+</body>
+</html>
