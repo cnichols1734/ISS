@@ -3,7 +3,6 @@ import requests
 
 app = Flask(__name__)
 
-# http://98.39.74.161:5001
 
 @app.route('/')
 def index():
